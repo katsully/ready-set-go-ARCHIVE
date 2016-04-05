@@ -163,7 +163,8 @@ void BodyTrackingApp::draw()
 				gl::color(Color(1, 0, 0));
 				for (const auto& joint : body.getJointMap()) {
 					if (joint.second.getTrackingState() == TrackingState::TrackingState_Tracked) {
-						if (joint.first == JointType_SpineMid) {
+						// get the color from the performer's right shoulder
+						if (joint.first == JointType_ShoulderRight) {
 							const vec2 midSpinePos = mDevice->mapCameraToColor(joint.second.getPosition());
 							ColorA8u shirtColor = mSurfaceColor->getPixel(midSpinePos);
 							bool newPerson = true;
