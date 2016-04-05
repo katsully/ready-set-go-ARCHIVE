@@ -103,6 +103,7 @@ BodyTrackingApp::BodyTrackingApp()
 	mParams->addParam("Frame rate", &mFrameRate, "", true);
 	mParams->addParam("Full screen", &mFullScreen).key("f");
 	mParams->addButton("Quit", [&]() { quit(); }, "key=q");
+	console() << "HERE" << endl;
 
 	bodyColors.push_back(Color(1, 0, 0));	// red
 	bodyColors.push_back(Color(1, 1, 0));	// yellow
@@ -168,13 +169,16 @@ void BodyTrackingApp::draw()
 							bool newPerson = true;
 							int idx = 0;
 							for (ColorA8u c : shirtColors) {
-								if (abs(shirtColor.r - c.r) < 30 && abs(shirtColor.g - c.g) < 30 && abs(shirtColor.b - c.b) < 30) {
+								if (abs(shirtColor.r - c.r) < 50 && abs(shirtColor.g - c.g) < 50 && abs(shirtColor.b - c.b) < 50) {
+									console() << shirtColor << endl;
 									newPerson = false;
 									break;
 								}
 								idx++;
 							}
 							if (newPerson && shirtColors.size() < 6) {
+								console() << shirtColor << endl;
+								console() << "NEW PERSON" << endl;
 								shirtColors.push_back(shirtColor);
 								idx = shirtColors.size() - 1;
 							}
