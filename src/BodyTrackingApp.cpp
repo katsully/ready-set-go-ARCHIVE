@@ -35,6 +35,8 @@
 *
 */
 
+// Edited by Kat Sullivan
+
 #include "cinder/app/App.h"
 #include "cinder/params/Params.h"
 #include "cinder/gl/gl.h" 
