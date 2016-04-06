@@ -46,6 +46,10 @@
 
 #include "Kinect2.h"
 
+using namespace ci;
+using namespace ci::app;
+using namespace std;
+
 class BodyTrackingApp : public ci::app::App
 {
 public:
@@ -53,6 +57,7 @@ public:
 
 	void						draw() override;
 	void						update() override;
+	void						keyDown(KeyEvent event);
 private:
 	Kinect2::BodyFrame			mBodyFrame;
 	ci::Channel8uRef			mChannelBodyIndex;
@@ -65,17 +70,10 @@ private:
 	ci::params::InterfaceGlRef	mParams;
 
 	// list of colors representing a person
-	std::vector<ci::ColorA8u> shirtColors;
-	std::vector<ci::ColorA8u> bodyColors;
-	int bodyColorIdx;
-	std::map<ci::ColorA8u, ci::ColorA8u> matchColors;
+	vector<ColorA8u> shirtColors;
+	vector<ColorA8u> bodyColors;
+	vector < tuple<ColorA8u, ColorA8u> > outfits;
 };
-
-
-
-using namespace ci;
-using namespace ci::app;
-using namespace std;
 
 BodyTrackingApp::BodyTrackingApp()
 {
@@ -113,7 +111,6 @@ BodyTrackingApp::BodyTrackingApp()
 	bodyColors.push_back(Color(0, 0, 1));	// blue
 	bodyColors.push_back(Color(0, 0, 0));	// black
 	bodyColors.push_back(Color(1, 1, 1));	// white
-	bodyColorIdx = 0;
 }
 
 void BodyTrackingApp::draw()
@@ -162,33 +159,57 @@ void BodyTrackingApp::draw()
 		for (const Kinect2::Body& body : mBodyFrame.getBodies()) {
 			if (body.isTracked()) {
 				// color for skeleton
-				gl::color(Color(1, 0, 0));
+				gl::color(Color(1, 0, 1));
+				bool newPerson = true;
+				ColorA8u shirtColor;
+				ColorA8u pantColor;
 				for (const auto& joint : body.getJointMap()) {
 					if (joint.second.getTrackingState() == TrackingState::TrackingState_Tracked) {
 						// get the color from the performer's right shoulder
 						if (joint.first == JointType_ShoulderRight) {
 							const vec2 midSpinePos = mDevice->mapCameraToColor(joint.second.getPosition());
-							ColorA8u shirtColor = mSurfaceColor->getPixel(midSpinePos);
-							bool newPerson = true;
-							int idx = 0;
+							shirtColor = mSurfaceColor->getPixel(midSpinePos);
 							for (ColorA8u c : shirtColors) {
-								if (abs(shirtColor.r - c.r) < 50 && abs(shirtColor.g - c.g) < 50 && abs(shirtColor.b - c.b) < 50) {
-									console() << shirtColor << endl;
+								if (abs(shirtColor.r - c.r) < 45 && abs(shirtColor.g - c.g) < 45 && abs(shirtColor.b - c.b) < 45) {
 									newPerson = false;
 									break;
 								}
-								idx++;
 							}
 							if (newPerson && shirtColors.size() < 6) {
-								console() << shirtColor << endl;
-								console() << "NEW PERSON" << endl;
 								shirtColors.push_back(shirtColor);
-								idx = shirtColors.size() - 1;
 							}
-							if (idx > 5) {
+						}
+						// second color tracker to look at pant color
+						else if (joint.first == JointType_KneeRight) {
+							const vec2 kneeRightPos = mDevice->mapCameraToColor(joint.second.getPosition());
+							ColorA8u pantColor = mSurfaceColor->getPixel(kneeRightPos);
+							int idx = 0;
+							
+							// if this is possibly an existing person because the shirt matched
+							if(!newPerson) {
+								for (tuple<ColorA8u, ColorA8u> outfit: outfits) {
+									ColorA8u c = std::get<0>(outfit);
+									if (abs(shirtColor.r - c.r) < 45 && abs(shirtColor.g - c.g) < 45 && abs(shirtColor.b - c.b) < 45) {
+										ColorA8u p = std::get<1>(outfit);
+										if (abs(pantColor.r - c.r) < 45 && abs(pantColor.g - c.g) < 45 && abs(pantColor.b - c.b) < 45) {
+											newPerson = false;
+											break;
+										}
+										idx++;
+									}
+								}
+							}
+							if (newPerson && outfits.size() < 6) {
+								outfits.push_back(make_tuple(shirtColor, pantColor));
+								idx = outfits.size() - 1;
+							}
+							if (idx > 6) {
 								idx = 0;
 							}
-							console() << shirtColors.size() << endl;
+							console() << "OUTFITS SIZE: ";
+							console() << outfits.size() << endl;
+							console() << "INDEX COUNT: ";
+							console() << idx << endl;
 							gl::color(bodyColors[idx]);
 						}
 						const vec2 pos(mDevice->mapCameraToDepth(joint.second.getPosition()));
@@ -215,6 +236,12 @@ void BodyTrackingApp::update()
 	if (mFullScreen != isFullScreen()) {
 		setFullScreen(mFullScreen);
 		mFullScreen = isFullScreen();
+	}
+}
+
+void BodyTrackingApp::keyDown(KeyEvent event) {
+	if ('a' == event.getChar()) {
+		console() << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl;
 	}
 }
 
